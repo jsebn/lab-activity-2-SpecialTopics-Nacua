@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMINISTRATOR
+  REGISTRAR
+  INSTRUCTOR
+  STUDENT
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  PENDING
+  ARCHIVED
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  role          Role     @default(STUDENT)
+  status        Status   @default(ACTIVE)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  instructorOfferings CourseOffering[]
+  @@map("users")
+}
+
+model Program {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  name        String
+  description String?
+  status      Status    @default(ACTIVE)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  students    Student[]
+  @@map("programs")
+}
+
+model Student {
+  id             Int          @id @default(autoincrement())
+  studentNumber  String       @unique @map("student_number")
+  firstName      String       @map("first_name")
+  middleName     String?      @map("middle_name")
+  lastName       String       @map("last_name")
+  suffix         String?
+  birthDate      DateTime     @map("birth_date") @db.Date
+  email          String       @unique
+  contactNumber  String?      @map("contact_number")
+  address        String?
+  programId      Int          @map("program_id")
+  program        Program      @relation(fields: [programId], references: [id])
+  yearLevel      Int          @map("year_level")
+  status         Status       @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  enrollments    Enrollment[]
+  @@map("students")
+}
+
+model Course {
+  id          Int              @id @default(autoincrement())
+  courseCode  String           @unique @map("course_code")
+  courseTitle String           @map("course_title")
+  description String?
+  units       Int
+  status      Status           @default(ACTIVE)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  offerings   CourseOffering[]
+  @@map("courses")
+}
+
+model AcademicTerm {
+  id          Int              @id @default(autoincrement())
+  academicYear String          @map("academic_year")
+  semester    String
+  startDate   DateTime         @map("start_date") @db.Date
+  endDate     DateTime         @map("end_date") @db.Date
+  status      Status           @default(ACTIVE)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  offerings   CourseOffering[]
+  @@map("academic_terms")
+}
+
+model CourseOffering {
+  id             Int          @id @default(autoincrement())
+  courseId       Int          @map("course_id")
+  course         Course       @relation(fields: [courseId], references: [id])
+  academicTermId Int          @map("academic_term_id")
+  academicTerm   AcademicTerm @relation(fields: [academicTermId], references: [id])
+  instructorId   Int          @map("instructor_id")
+  instructor     User         @relation(fields: [instructorId], references: [id])
+  section        String
+  schedule       String
+  room           String
+  capacity       Int
+  status         Status       @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  enrollments    Enrollment[]
+  @@map("course_offerings")
+}
+
+model Enrollment {
+  id               Int            @id @default(autoincrement())
+  studentId        Int            @map("student_id")
+  student          Student        @relation(fields: [studentId], references: [id])
+  courseOfferingId Int            @map("course_offering_id")
+  courseOffering   CourseOffering @relation(fields: [courseOfferingId], references: [id])
+  enrollmentDate   DateTime       @default(now()) @map("enrollment_date") @db.Date
+  status           Status         @default(ACTIVE)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  grade            Grade?
+  @@unique([studentId, courseOfferingId])
+  @@map("enrollments")
+}
+
+model Grade {
+  id            Int        @id @default(autoincrement())
+  enrollmentId  Int        @unique @map("enrollment_id")
+  enrollment    Enrollment @relation(fields: [enrollmentId], references: [id])
+  midtermGrade  Float?     @map("midterm_grade")
+  finalGrade    Float?     @map("final_grade")
+  remarks       String?
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  @@map("grades")
+}
